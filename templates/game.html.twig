@@ -1,0 +1,12 @@
+{% extends 'base.html.twig' %}
+
+{% block content %}
+    {% if game.freespot %}
+    <label>
+        Join link:
+        <input type="text" value="{{ path('game_join', {code: game.code}) }}" readonly>
+    </label>
+    {% endif %}
+
+    {{ component('Tabletop', {game: game, player: player}) }}
+{% endblock %}

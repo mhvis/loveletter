@@ -1,0 +1,13 @@
+{% extends 'base.html.twig' %}
+
+{% block content %}
+    <h2>Start new game</h2>
+    <form method="post" action="{{ path('game_home') }}">
+
+        <input type="hidden" name="token" value="{{ csrf_token('new') }}">
+
+        <button type="submit" name="group_size" value="2">2 players</button>
+        <button type="submit" name="group_size" value="3">3 players</button>
+        <button type="submit" name="group_size" value="4">4 players</button>
+    </form>
+{% endblock %}

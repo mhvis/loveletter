@@ -1,0 +1,159 @@
+<div {{ attributes }}>
+    {% for p, pUid in game.players %}
+        {% set you = p == player %}
+
+        <h3 style="{% if attribute(game.hands, p)|length == 2 %}font-style: italic;{% endif %}">
+            Speler {{ p }}
+            {% if you %}(jij){% endif %}
+            {% if not pUid %}(nog niet gejoined){% endif %}
+            {% if attribute(game.hands, p)|length == 2 %}(aan de beurt){% endif %}
+        </h3>
+
+        {#        {% if attribute(game.hands, p)|length == 2 %} #}
+        {#        <em>Aan de beurt</em> #}
+        {#        {% endif %} #}
+
+        <div style="display: flex;">
+            {% for card in attribute(game.hands, p) %}
+                {% if you %}
+                    {{ include('partials/card.html.twig') }}
+                {% else %}
+                    {{ include('partials/card.html.twig', {card: 0}) }}
+                {% endif %}
+            {% endfor %}
+        </div>
+
+    {% endfor %}
+
+    <h3>Tafel</h3>
+    <span>Stapel: {{ game.deck|length }} kaarten</span>
+    <div style="display: flex;">
+        {% if game.deck|length > 0 %}
+            {{ include('partials/card.html.twig', {card: 0}) }}
+        {% endif %}
+        {% if game.aside %}
+            {% for card in game.aside %}
+                {{ include('partials/card.html.twig') }}
+            {% endfor %}
+        {% endif %}
+    </div>
+
+    {% if attribute(game.hands, player)|length == 2 %}
+        <div style="padding: 1rem; background: lightgoldenrodyellow;">
+            <h3 style="margin-top: 0;">Speelbeurt</h3>
+
+            {# Crude action wizard #}
+            <form method="post"
+                  action="{{ path('game', {player: player, code: attribute(game, 'getPlayer', [player])}) }}">
+
+                <input type="hidden" name="token" value="{{ csrf_token('action') }}">
+                <input type="hidden" name="card" value="">
+                <input type="hidden" name="target" value="">
+                <input type="hidden" name="guess" value="">
+                <div>Welke kaart wil je spelen?</div>
+                {% for card in attribute(game.hands, player) %}
+                    <label>
+                        <input type="radio"
+                               name="card"
+                               value="{{ card }}"
+                               onchange="document.getElementById('card-questions').replaceChildren(
+                                   document.getElementById('card-choice-' + this.value).content.cloneNode(true)
+                                   )"
+                               required>
+                        {{ card }} {{ include('partials/cardname.html.twig') }}
+                    </label>
+                {% endfor %}
+
+                <div id="card-questions"></div>
+
+                <button type="submit">
+                    Speel!
+                </button>
+            </form>
+        </div>
+
+        <template id="card-choice-1">
+            <span>Kies een speler en kaart</span>
+            <div>
+                {% for p, hand in game.hands %}
+                    {% if p != player and hand|length != 0 %}
+                        <label>
+                            <input type="radio" name="target" value="{{ p }}" required>
+                            Speler {{ p }}
+                        </label>
+                    {% endif %}
+                {% endfor %}
+            </div>
+            <div>
+                <label><input type="radio" name="guess" value="2" required> Priester</label>
+                <label><input type="radio" name="guess" value="3" required> Baron</label>
+                <label><input type="radio" name="guess" value="4" required> Kamermeisje</label>
+                <label><input type="radio" name="guess" value="5" required> Prins</label>
+                <label><input type="radio" name="guess" value="6" required> Koning</label>
+                <label><input type="radio" name="guess" value="7" required> Gravin</label>
+                <label><input type="radio" name="guess" value="8" required> Prinses</label>
+            </div>
+        </template>
+        <template id="card-choice-2">
+            <span>Kies een speler</span>
+            <div>
+                {% for p, hand in game.hands %}
+                    {% if p != player and hand|length != 0 %}
+                        <label>
+                            <input type="radio" name="target" value="{{ p }}" required>
+                            Speler {{ p }}
+                        </label>
+                    {% endif %}
+                {% endfor %}
+            </div>
+        </template>
+        <template id="card-choice-3">
+            <span>Kies een speler</span>
+            <div>
+                {% for p, hand in game.hands %}
+                    {% if p != player and hand|length != 0 %}
+                        <label>
+                            <input type="radio" name="target" value="{{ p }}" required>
+                            Speler {{ p }}
+                        </label>
+                    {% endif %}
+                {% endfor %}
+            </div>
+        </template>
+        <template id="card-choice-4">
+            <span></span>
+        </template>
+        <template id="card-choice-5">
+            <span>Kies een speler</span>
+            <div>
+                {% for p, hand in game.hands %}
+                    {% if hand|length != 0 %}
+                        <label>
+                            <input type="radio" name="target" value="{{ p }}" required>
+                            Speler {{ p }}
+                        </label>
+                    {% endif %}
+                {% endfor %}
+            </div>
+        </template>
+        <template id="card-choice-6">
+            <span>Kies een speler</span>
+            <div>
+                {% for p, hand in game.hands %}
+                    {% if p != player and hand|length != 0 %}
+                        <label>
+                            <input type="radio" name="target" value="{{ p }}" required>
+                            Speler {{ p }}
+                        </label>
+                    {% endif %}
+                {% endfor %}
+            </div>
+        </template>
+        <template id="card-choice-7">
+            <span></span>
+        </template>
+        <template id="card-choice-8">
+            <span></span>
+        </template>
+    {% endif %}
+</div>

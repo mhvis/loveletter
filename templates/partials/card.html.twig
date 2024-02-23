@@ -1,0 +1,42 @@
+{#
+Draws a card.
+
+Context variables:
+
+* `card`: The card to draw. Use 0 to draw the back of a card.
+#}
+{% if card == 0 %}
+<div style="width: 15rem; height: 20rem; border: 3px solid blue; border-radius: 3px; background: lightblue;">
+</div>
+{% else %}
+<div style="width: 15rem; border: 3px solid black; border-radius: 3px; background: palegoldenrod;">
+    <div style="display: flex;">
+        <div>{{ card }}</div>
+        <div>{{ include('partials/cardname.html.twig') }}</div>
+    </div>
+    <div style="width: 100%; height: 5rem;"></div>
+    <div style="">
+        {% if card == 1 %}
+            Kies een andere speler en noem een kaart (geen Wachter).
+            Heeft deze speler de genoemde kaart, dan is hij afgewezen.
+        {% elseif card == 2 %}
+            Bekijk de hand van een andere speler naar keuze.
+        {% elseif card == 3 %}
+            Vergelijk je hand met die van een andere speler.
+            Wie de laagste waarde heeft, is afgewezen.
+        {% elseif card == 4 %}
+            Negeer de effecten van kaarten van andere spelers tot het begin van je volgende beurt.
+        {% elseif card == 5 %}
+            Kies een speler (dat mag je ook zelf zijn).
+            Deze legt zijn hand af en trekt een nieuwe kaart.
+        {% elseif card == 6 %}
+            Ruil je hand met een andere speler naar keuze.
+        {% elseif card == 7 %}
+            Als je deze kaart en de Koning of de Prins in je hand hebt,
+            moet je de Gravin afleggen.
+        {% elseif card == 8 %}
+            Als je deze kaart aflegt, ben je afgewezen.
+        {% endif %}
+    </div>
+</div>
+{% endif %}
