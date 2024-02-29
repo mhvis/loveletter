@@ -32,7 +32,7 @@ class GameService
         $game->setDeck($r->shuffleArray($game->getDeck()));
 
         // Remove top card
-        $game->draw();
+        $game->setWithdrawn($game->draw());
 
         if (2 === $game->getGroupSize()) {
             // Put 3 cards aside
@@ -53,10 +53,25 @@ class GameService
     }
 
     /**
-     * Returns true iff the given player played card 4 this round (Kamermeisje).
+     * Advances the turn to the next player after given player.
      */
-    public function isImmune(Game $game, int $player): bool
+    public function advanceTurn(Game $game, int $player): void
     {
-        return false;
+        if ($game->roundOver()) {
+            return;
+        }
+
+
+        $alive = $game->getAlive();
+        $card = $game->draw();
+        if (count($alive) == 1 || !$card) {
+            // Round is ended: one player left or deck is empty
+            return;
+        }
+
+        // We assume the $alive array is 0-indexed without gaps
+        $next = $alive[(array_search($player, $alive) + 1) % count($alive)];
+
+        $game->addToHand($next, $card);
     }
 }

@@ -40,6 +40,24 @@ class Game
     private array $state = [];
 
     /**
+     * Resets the game state to the starting position with an unshuffled deck.
+     *
+     * Does not reset chip count.
+     */
+    public function resetState(): void
+    {
+        $this->state['deck'] = [1, 1, 1, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 7, 8];
+        $this->state['aside'] = [];
+        $this->state['withdrawn'] = null;
+        $this->state['last_turn'] = null;
+        for ($i = 1; $i <= $this->groupSize; $i++) {
+            $this->state['hands'][$i] = [];
+            $this->state['open'][$i] = [];
+            $this->state['immune'][$i] = false;
+        }
+    }
+
+    /**
      * Constructs a new game instance with a full unshuffled deck and empty hands.
      */
     public function __construct(int $groupSize)
@@ -54,22 +72,25 @@ class Game
             'open' => [],
             'chips' => [],
             'aside' => [],
+            // We slapped this on later, we should refactor this
+            'immune' => [],
+            'withdrawn' => null,  // This is the card which is removed from the game at the start
+            'last_turn' => null,
         ];
-        for ($i = 1; $i <= $groupSize; $i++) {
+        for ($i = 1; $i <= $this->groupSize; $i++) {
             $this->state['hands'][$i] = [];
             $this->state['open'][$i] = [];
             $this->state['chips'][$i] = 0;
+            $this->state['immune'][$i] = false;
         }
-
     }
-
 
     public function getDeck(): array
     {
         return $this->state['deck'];
     }
 
-    public function setDeck(array $deck)
+    public function setDeck(array $deck): void
     {
         $this->state['deck'] = $deck;
     }
@@ -77,7 +98,7 @@ class Game
     /**
      * Draws a card from the deck and removes it from the deck.
      */
-    public function draw(): int
+    public function draw(): ?int
     {
         return array_pop($this->state['deck']);
     }
@@ -116,14 +137,19 @@ class Game
     }
 
     /**
-     * Adds a card to the list of open cards for a player.
+     * Opens a card in a hand by moving it from the hand to the open cards.
      */
-    public function addOpen(int $player, int $card): void
+    public function openCard(int $player, int $card): static
     {
-        if (!array_key_exists($player, $this->state['open'])) {
+        if (!array_key_exists($player, $this->state['hands'])) {
             throw new \ValueError();
         }
+        $idx = array_search($card, $this->state['hands'][$player]);
+
+        unset($this->state['hands'][$player][$idx]);
         $this->state['open'][$player][] = $card;
+
+        return $this;
     }
 
     public function addToHand(int $player, int $card)
@@ -134,13 +160,35 @@ class Game
         $this->state['hands'][$player][] = $card;
     }
 
-    public function removeFromHand(int $player, int $card)
+//    public function removeFromHand(int $player, int $card)
+//    {
+//        if (!array_key_exists($player, $this->state['hands'])) {
+//            throw new \ValueError();
+//        }
+//        $key = array_search($card, $this->state['hands'][$player]);
+//        unset($this->state['hands'][$player][$key]);
+//    }
+
+    /**
+     * Swaps the hand between two players.
+     */
+    public function swapHands(int $player1, int $player2)
     {
-        if (!array_key_exists($player, $this->state['hands'])) {
+        $swap = $this->state['hands'][$player1];
+        $this->state['hands'][$player1] = $this->state['hands'][$player2];
+        $this->state['hands'][$player2] = $swap;
+    }
+
+    /**
+     * If the given player has a single card in their hand, return its value.
+     */
+    public function getHandValue(int $player): int
+    {
+        $hand = $this->state['hands'][$player];
+        if (count($hand) != 1) {
             throw new \ValueError();
         }
-        $key = array_search($card, $this->state['hands'][$player]);
-        unset($this->state['hands'][$player][$key]);
+        return array_values($hand)[0];
     }
 
     /**
@@ -149,6 +197,14 @@ class Game
     public function getChips(): array
     {
         return $this->state['chips'];
+    }
+
+    public function incrementChips(int $player): void
+    {
+        if (!array_key_exists($player, $this->state['chips'])) {
+            throw new \ValueError();
+        }
+        $this->state['chips'][$player]++;
     }
 
     public function getCode(): ?string
@@ -248,5 +304,150 @@ class Game
             }
         }
         return null;
+    }
+
+    /**
+     * Returns the player number who's turn it currently is.
+     */
+    public function turn(): ?int
+    {
+        foreach ($this->state['hands'] as $player => $hand) {
+            if (count($hand) === 2) {
+                return $player;
+            }
+        }
+        return null;
+    }
+
+    public function isAlive(int $player): bool
+    {
+        if (!array_key_exists($player, $this->state['hands'])) {
+            throw new \ValueError();
+        }
+        return count($this->state['hands'][$player]) > 0;
+    }
+
+    /**
+     * Returns the players who have not been discarded.
+     */
+    public function getAlive(): array
+    {
+        $alive = [];
+        foreach ($this->state['hands'] as $player => $hand) {
+            if (count($hand) > 0) {
+                $alive[] = $player;
+            }
+        }
+        return $alive;
+    }
+
+    public function setImmune(int $player, bool $value): static
+    {
+        if (!array_key_exists($player, $this->state['immune'])) {
+            throw new \ValueError();
+        }
+        $this->state['immune'][$player] = $value;
+
+        return $this;
+    }
+
+    /**
+     * Returns true iff the given player played card 4 this round (Kamermeisje).
+     */
+    public function isImmune(int $player): bool
+    {
+        // Check that the player has 1 card in his hand
+        return (
+            count($this->state['hands'][$player]) == 1 && $this->state['immune'][$player]
+        );
+    }
+
+    /**
+     * Returns the alive players who are not immune.
+     */
+    public function getNonImmune(): array
+    {
+        $value = [];
+        foreach ($this->getAlive() as $player) {
+            if (!$this->isImmune($player)) {
+                $value[] = $player;
+            }
+        }
+        return $value;
+    }
+
+    /**
+     * Sets the card that is discarded at the start of the game.
+     */
+    public function setWithdrawn(?int $card): void
+    {
+        $this->state['withdrawn'] = $card;
+    }
+
+    /**
+     * Returns and clears the withdrawn card.
+     */
+    public function grabWithdrawn(): ?int
+    {
+        $val = $this->state['withdrawn'];
+        $this->state['withdrawn'] = null;
+        return $val;
+    }
+
+    public function setLastTurn(int $player, int $card, ?int $target, ?int $guess): void
+    {
+        $this->state['last_turn'] = array(
+            'player' => $player,
+            'card' => $card,
+            'target' => $target,
+            'guess' => $guess,
+        );
+    }
+
+    public function getLastTurn(): ?array
+    {
+        return $this->state['last_turn'];
+    }
+
+    /**
+     * Returns true when the round is over, i.e. the deck is empty or there is one player left.
+     */
+    public function roundOver(): bool
+    {
+        return empty($this->state['deck']) || count($this->getAlive()) == 1;
+    }
+
+    public function roundWinner(): int
+    {
+        if (!$this->roundOver()) {
+            throw new \ValueError('Round is not over');
+        }
+        $alive = $this->getAlive();
+
+        // Win condition 1: only one player left alive
+        if (count($alive) == 1) {
+            return $alive[0];
+        }
+
+        // Win condition 2: highest hand value
+        $hands = [];
+        foreach ($alive as $player) {
+            $hands[$player] = $this->state['hands'][$player];
+        }
+        $maxs = array_keys($hands, max($hands));
+        if (count($maxs) == 1) {
+            return $maxs[0];
+        }
+
+        // Win condition 3: highest open card value
+        $open = [];
+        foreach ($alive as $player) {
+            $open[$player] = array_sum($this->state['open'][$player]);
+        }
+        $maxs = array_keys($open, max($open));
+        if (count($maxs) != 1) {
+            throw new \RuntimeException('Unexpected game state');
+        }
+        return $maxs[0];
     }
 }

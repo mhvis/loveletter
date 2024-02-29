@@ -1,106 +1,142 @@
-<div {{ attributes }}>
-    {% for p, pUid in game.players %}
-        {% set you = p == player %}
+<div {{ attributes }} data-poll>
 
-        <h3 style="{% if attribute(game.hands, p)|length == 2 %}font-style: italic;{% endif %}">
-            Speler {{ p }}
-            {% if you %}(jij){% endif %}
-            {% if not pUid %}(nog niet gejoined){% endif %}
-            {% if attribute(game.hands, p)|length == 2 %}(aan de beurt){% endif %}
-        </h3>
-
-        {#        {% if attribute(game.hands, p)|length == 2 %} #}
-        {#        <em>Aan de beurt</em> #}
-        {#        {% endif %} #}
-
-        <div style="display: flex;">
-            {% for card in attribute(game.hands, p) %}
-                {% if you %}
-                    {{ include('partials/card.html.twig') }}
+    {% if game.getLastTurn %}
+        <div class="alert alert-secondary">
+            {% set turn = game.getLastTurn %}
+            {% if turn.card == 1 %}
+                {% if not turn.target %}
+                    Speler {{ turn.player }} speelt de wachter (1) maar alle andere spelers zijn beschermd door het kamermeisje.
                 {% else %}
-                    {{ include('partials/card.html.twig', {card: 0}) }}
+                    Speler {{ turn.player }} speelt de wachter (1)
+                    richting speler {{ turn.target }}. De genoemde kaart is {{ turn.guess }}.
+                    {#                ({{ include('partials/cardname.html.twig', {card: turn.guess}) }}). #}
+                    {% if attribute(game, 'isAlive', [turn.target]) %}
+                        De genoemde kaart is onjuist.
+                    {% else %}
+                        De genoemde kaart is juist en speler {{ turn.target }} is afgewezen.
+                    {% endif %}
                 {% endif %}
-            {% endfor %}
+
+            {% elseif turn.card == 2 %}
+                Speler {{ turn.player }} speelt de priester (2)
+                en bekijkt de hand van speler {{ turn.target }}.
+            {% elseif turn.card == 3 %}
+                Speler {{ turn.player }} speelde de baron (3)
+                en vergeleek zijn hand met speler {{ turn.target }}.
+                {% if not attribute(game, 'isAlive', [turn.target]) %}
+                    Speler {{ turn.target }} is afgewezen.
+                {% elseif not attribute(game, 'isAlive', [turn.player]) %}
+                    Speler {{ turn.player }} is afgewezen.
+                {% else %}
+                    Niemand is afgewezen.
+                {% endif %}
+            {% elseif turn.card == 4 %}
+                Speler {{ turn.player }} speelt het kamermeisje (4).
+            {% elseif turn.card == 5 %}
+                Speler {{ turn.player }} speelt de prins (5) en
+                {% if turn.player == turn.target %}
+                    legt zijn eigen hand af.
+                {% else %}
+                    legt de hand af van speler {{ turn.target }}.
+                {% endif %}
+            {% elseif turn.card == 6 %}
+                Speler {{ turn.player }} speelt de koning (6)
+                {% if not turn.target %}
+                    maar alle andere spelers zijn beschermd door het kamermeisje.
+                {% else %}
+                    en ruilt zijn kaart met speler {{ turn.target }}.
+                {% endif %}
+            {% elseif turn.card == 7 %}
+                Speler {{ turn.player }} speelt de gravin (7).
+            {% elseif turn.card == 8 %}
+                Speler {{ turn.player }} speelt de prinses (8).
+            {% endif %}
         </div>
+    {% endif %}
 
-    {% endfor %}
 
-    <h3>Tafel</h3>
-    <span>Stapel: {{ game.deck|length }} kaarten</span>
-    <div style="display: flex;">
-        {% if game.deck|length > 0 %}
-            {{ include('partials/card.html.twig', {card: 0}) }}
-        {% endif %}
-        {% if game.aside %}
-            {% for card in game.aside %}
-                {{ include('partials/card.html.twig') }}
-            {% endfor %}
-        {% endif %}
-    </div>
+    {% if game.turn == player %}
+        <div class="card" style="background: lightgoldenrodyellow;">
+            <div class="card-body">
+                <h3 class="card-title">Speelbeurt</h3>
 
-    {% if attribute(game.hands, player)|length == 2 %}
-        <div style="padding: 1rem; background: lightgoldenrodyellow;">
-            <h3 style="margin-top: 0;">Speelbeurt</h3>
+                {# Crude action wizard #}
+                <form method="post"
+                      action="{{ path('game', {player: player, code: attribute(game, 'getPlayer', [player])}) }}">
 
-            {# Crude action wizard #}
-            <form method="post"
-                  action="{{ path('game', {player: player, code: attribute(game, 'getPlayer', [player])}) }}">
-
-                <input type="hidden" name="token" value="{{ csrf_token('action') }}">
-                <input type="hidden" name="card" value="">
-                <input type="hidden" name="target" value="">
-                <input type="hidden" name="guess" value="">
-                <div>Welke kaart wil je spelen?</div>
-                {% for card in attribute(game.hands, player) %}
-                    <label>
-                        <input type="radio"
-                               name="card"
-                               value="{{ card }}"
-                               onchange="document.getElementById('card-questions').replaceChildren(
+                    {{ form_row(form._token) }}
+                    {#                <input type="hidden" name="token" value="{{ csrf_token('action') }}"> #}
+                    <span>Welke kaart wil je spelen?</span>
+                    {% for card in attribute(game.hands, player) %}
+                        <div class="form-check">
+                            <input type="radio"
+                                   class="form-check-input"
+                                   name="{{ field_name(form.card) }}"
+                                   id="cardChoice{{ loop.index }}"
+                                   value="{{ card }}"
+                                   {% if (card == 5 or card == 6) and 7 in attribute(game.hands, player) %}disabled{% endif %}
+                                   onchange="document.getElementById('card-questions').replaceChildren(
                                    document.getElementById('card-choice-' + this.value).content.cloneNode(true)
                                    )"
-                               required>
-                        {{ card }} {{ include('partials/cardname.html.twig') }}
-                    </label>
-                {% endfor %}
+                                   required>
+                            <label for="cardChoice{{ loop.index }}"
+                                   class="form-check-label">
+                                {{ include('partials/cardname.html.twig') }} ({{ card }})
+                            </label>
+                        </div>
+                    {% endfor %}
 
-                <div id="card-questions"></div>
+                    <div id="card-questions"></div>
 
-                <button type="submit">
-                    Speel!
-                </button>
-            </form>
+                    <button type="submit"
+                            class="btn btn-primary">
+                        Speel!
+                    </button>
+                </form>
+            </div>
         </div>
 
         <template id="card-choice-1">
-            <span>Kies een speler en kaart</span>
-            <div>
-                {% for p, hand in game.hands %}
-                    {% if p != player and hand|length != 0 %}
-                        <label>
-                            <input type="radio" name="target" value="{{ p }}" required>
-                            Speler {{ p }}
-                        </label>
-                    {% endif %}
-                {% endfor %}
-            </div>
-            <div>
-                <label><input type="radio" name="guess" value="2" required> Priester</label>
-                <label><input type="radio" name="guess" value="3" required> Baron</label>
-                <label><input type="radio" name="guess" value="4" required> Kamermeisje</label>
-                <label><input type="radio" name="guess" value="5" required> Prins</label>
-                <label><input type="radio" name="guess" value="6" required> Koning</label>
-                <label><input type="radio" name="guess" value="7" required> Gravin</label>
-                <label><input type="radio" name="guess" value="8" required> Prinses</label>
-            </div>
+            <span>Kies een speler:</span>
+            {% for p in game.alive %}
+                {% if p != player %}
+                    {{ include('partials/targetradio.html.twig', {
+                        name: field_name(form.target),
+                        id: 'targetChoice' ~ loop.index,
+                        value: p,
+                        disabled: p not in game.getNonImmune,
+                    }) }}
+                {% endif %}
+            {% endfor %}
+            <span>Noem een kaart:</span>
+            {{ include('partials/cardradio.html.twig', {name: field_name(form.guess), id: 'guessChoice', card: 2}) }}
+            {{ include('partials/cardradio.html.twig', {name: field_name(form.guess), id: 'guessChoice', card: 3}) }}
+            {{ include('partials/cardradio.html.twig', {name: field_name(form.guess), id: 'guessChoice', card: 4}) }}
+            {{ include('partials/cardradio.html.twig', {name: field_name(form.guess), id: 'guessChoice', card: 5}) }}
+            {{ include('partials/cardradio.html.twig', {name: field_name(form.guess), id: 'guessChoice', card: 6}) }}
+            {{ include('partials/cardradio.html.twig', {name: field_name(form.guess), id: 'guessChoice', card: 7}) }}
+            {{ include('partials/cardradio.html.twig', {name: field_name(form.guess), id: 'guessChoice', card: 8}) }}
+            {#            <label> #}
+            {#                <label><input type="radio" name="{{ field_name(form.guess) }}" value="3" required> Baron</label> #}
+            {#                <label><input type="radio" name="{{ field_name(form.guess) }}" value="4" required> Kamermeisje</label> #}
+            {#                <label><input type="radio" name="{{ field_name(form.guess) }}" value="5" required> Prins</label> #}
+            {#                <label><input type="radio" name="{{ field_name(form.guess) }}" value="6" required> Koning</label> #}
+            {#                <label><input type="radio" name="{{ field_name(form.guess) }}" value="7" required> Gravin</label> #}
+            {#                <label><input type="radio" name="{{ field_name(form.guess) }}" value="8" required> Prinses</label> #}
+
         </template>
         <template id="card-choice-2">
-            <span>Kies een speler</span>
+            <span>Welke hand wil je zien?</span>
             <div>
-                {% for p, hand in game.hands %}
-                    {% if p != player and hand|length != 0 %}
+                {% for p in game.alive %}
+                    {% if p != player %}
                         <label>
-                            <input type="radio" name="target" value="{{ p }}" required>
+                            <input type="radio"
+                                   name="{{ field_name(form.target) }}"
+                                   value="{{ p }}"
+                                   {% if attribute(game, 'isImmune', [p]) %}disabled{% endif %}
+                                    {#                                   required #}
+                            >
                             Speler {{ p }}
                         </label>
                     {% endif %}
@@ -110,50 +146,115 @@
         <template id="card-choice-3">
             <span>Kies een speler</span>
             <div>
-                {% for p, hand in game.hands %}
-                    {% if p != player and hand|length != 0 %}
-                        <label>
-                            <input type="radio" name="target" value="{{ p }}" required>
-                            Speler {{ p }}
-                        </label>
+                {% for p in game.alive %}
+                    {% if p != player %}
+                        {{ include('partials/targetradio.html.twig', {
+                            name: field_name(form.target),
+                            id: 'targetChoice' ~ loop.index,
+                            value: p,
+                            disabled: p not in game.getNonImmune,
+                        }) }}
                     {% endif %}
                 {% endfor %}
             </div>
         </template>
-        <template id="card-choice-4">
-            <span></span>
-        </template>
+        <template id="card-choice-4"></template>
         <template id="card-choice-5">
             <span>Kies een speler</span>
             <div>
-                {% for p, hand in game.hands %}
-                    {% if hand|length != 0 %}
-                        <label>
-                            <input type="radio" name="target" value="{{ p }}" required>
-                            Speler {{ p }}
-                        </label>
-                    {% endif %}
+                {% for p in game.alive %}
+                    {{ include('partials/targetradio.html.twig', {
+                        name: field_name(form.target),
+                        id: 'targetChoice' ~ loop.index,
+                        value: p,
+                        disabled: p not in game.getNonImmune,
+                    }) }}
                 {% endfor %}
             </div>
         </template>
         <template id="card-choice-6">
             <span>Kies een speler</span>
             <div>
-                {% for p, hand in game.hands %}
-                    {% if p != player and hand|length != 0 %}
-                        <label>
-                            <input type="radio" name="target" value="{{ p }}" required>
-                            Speler {{ p }}
-                        </label>
+                {% for p in game.alive %}
+                    {% if p != player %}
+                        {{ include('partials/targetradio.html.twig', {
+                            name: field_name(form.target),
+                            id: 'targetChoice' ~ loop.index,
+                            value: p,
+                            disabled: p not in game.getNonImmune,
+                        }) }}
                     {% endif %}
                 {% endfor %}
             </div>
         </template>
-        <template id="card-choice-7">
-            <span></span>
-        </template>
-        <template id="card-choice-8">
-            <span></span>
-        </template>
+        <template id="card-choice-7"></template>
+        <template id="card-choice-8"></template>
     {% endif %}
+
+    <h2 class="mt-3">Handen</h2>
+
+    <div class="row">
+        {% for p, pUid in game.players %}
+            <div class="col-md-6 col-xl-4">
+                {% set you = p == player %}
+
+                <h5 class="mt-3 {% if game.turn == p %}fst-italic{% endif %} {% if not pUid %}text-muted{% endif %}">
+                    Speler {{ p }}
+                    {% if attribute(game.hands, p)|length == 0 %}(afgewezen){% endif %}
+                    {% if you %}(jij){% endif %}
+                    {#            {% if not pUid %}(nog niet gejoined){% endif %} #}
+                    {#            {% if attribute(game.hands, p)|length == 2 %}(aan de beurt){% endif %} #}
+                </h5>
+
+                {#        {% if attribute(game.hands, p)|length == 2 %} #}
+                {#        <em>Aan de beurt</em> #}
+                {#        {% endif %} #}
+
+                <div class="row">
+                    {% set turn = game.getLastTurn %}
+                    {% set priested = turn and turn.player == player and turn.card == 2 and turn.target == p %}
+                    {% for card in attribute(game.hands, p) %}
+                        <div class="col-6">
+                            {# Show card when it's yours, or targeted by priest, or the player is dead #}
+                            {% if you or (loop.first and priested) or (player and not player in game.getAlive) %}
+                                {{ include('partials/card.html.twig') }}
+                            {% else %}
+                                {{ include('partials/card.html.twig', {card: 0}) }}
+                            {% endif %}
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+        {% endfor %}
+    </div>
+
+    <h2 class="mt-5">Gespeeld/afgelegd</h2>
+
+    {% for player, cards in game.open %}
+        <h5 class="mt-3">Speler {{ player }}</h5>
+        <div class="row">
+            {% for card in cards %}
+                <div class="col-md-3 col-xl-2">
+                    {{ include('partials/card.html.twig') }}
+                </div>
+            {% endfor %}
+        </div>
+    {% endfor %}
+
+    <h2 class="mt-5">Stapel ({{ game.deck|length }} kaarten)</h2>
+
+    <div class="row">
+        <div class="col-md-3 col-xl-2">
+            {% if game.deck|length > 0 %}
+                {{ include('partials/card.html.twig', {card: 0}) }}
+            {% endif %}
+        </div>
+        {% for card in game.aside %}
+            <div class="col-md-3 col-xl-2">
+                {{ include('partials/card.html.twig') }}
+            </div>
+        {% endfor %}
+    </div>
+
 </div>

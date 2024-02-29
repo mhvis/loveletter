@@ -2,11 +2,19 @@
 
 {% block content %}
     {% if game.freespot %}
-    <label>
-        Join link:
-        <input type="text" value="{{ path('game_join', {code: game.code}) }}" readonly>
-    </label>
+        <div>
+            <label class="form-label"
+                   for="joinLinkField">
+                Join link
+            </label>
+            <input type="text"
+                   id="joinLinkField"
+                   class="form-control"
+                   onfocus="this.select();"
+                   value="{{ url('game_join', {code: game.code}) }}"
+                   readonly>
+        </div>
     {% endif %}
 
-    {{ component('Tabletop', {game: game, player: player}) }}
+    {{ component('Tabletop', {game: game, player: player, form: form}) }}
 {% endblock %}

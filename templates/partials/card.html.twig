@@ -6,16 +6,28 @@ Context variables:
 * `card`: The card to draw. Use 0 to draw the back of a card.
 #}
 {% if card == 0 %}
-<div style="width: 15rem; height: 20rem; border: 3px solid blue; border-radius: 3px; background: lightblue;">
+<div style="width: 100%; height: 15rem; border: 5px solid saddlebrown; border-radius: 10px; background: linear-gradient(rosybrown, sandybrown);">
 </div>
 {% else %}
-<div style="width: 15rem; border: 3px solid black; border-radius: 3px; background: palegoldenrod;">
-    <div style="display: flex;">
-        <div>{{ card }}</div>
-        <div>{{ include('partials/cardname.html.twig') }}</div>
+<div style="width: 100%; border: 5px solid saddlebrown; border-radius: 10px; background: palegoldenrod;">
+    <div style="display: flex; font-weight: bold; padding: 0.5rem; font-size: larger;">
+        <div style="margin-right: 1rem;">{{ card }}</div>
+        <div style="flex-grow: 1; text-align: center;">{{ include('partials/cardname.html.twig') }}</div>
     </div>
-    <div style="width: 100%; height: 5rem;"></div>
-    <div style="">
+    <div style="width: 100%; text-align: center;">
+        {% if card == 1 %}{% set src = '1-wachter.png' %}
+        {% elseif card == 2 %}{% set src = '2-priester.png' %}
+        {% elseif card == 3 %}{% set src = '3-baron.png' %}
+        {% elseif card == 4 %}{% set src = '4-kamermeisje.png' %}
+        {% elseif card == 5 %}{% set src = '5-prins.png' %}
+        {% elseif card == 6 %}{% set src = '6-koning.png' %}
+        {% elseif card == 7 %}{% set src = '7-gravin.png' %}
+        {% elseif card == 8 %}{% set src = '8-prinses.png' %}{% endif %}
+        <img src="{{ asset('images/cards/' ~ src) }}"
+             style="width: 7rem; margin: 0 auto;"
+             alt="{{ include('partials/cardname.html.twig') }}">
+    </div>
+    <div style="padding: 0.5rem; font-size: 0.8rem;">
         {% if card == 1 %}
             Kies een andere speler en noem een kaart (geen Wachter).
             Heeft deze speler de genoemde kaart, dan is hij afgewezen.

@@ -5,9 +5,11 @@ namespace App\Controller;
 use App\Entity\Game;
 use App\Service\GameService;
 use App\Service\GameState;
+use App\Service\Turn;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bridge\Doctrine\Attribute\MapEntity;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\Form\Extension\Core\Type\IntegerType;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
@@ -87,25 +89,45 @@ class GameController extends AbstractController
     #[Route('/game/{player<(1|2|3|4)>}/{code}/', name: 'game')]
     public function game(
         #[MapEntity(expr: 'repository.findOneBy({("player" ~ player): code})')]
-        Game $game,
-        int  $player
+        Game                   $game,
+        int                    $player,
+        Request                $request,
+        GameService            $gameService,
+        EntityManagerInterface $entityManager,
     ): Response
     {
+        $turn = new Turn($game, $player);
+        $form = $this->createFormBuilder($turn)
+            ->add('card', IntegerType::class)
+            ->add('target', IntegerType::class)
+            ->add('guess', IntegerType::class)
+            ->getForm();
+//        $form->handleRequest($request);
+
+
+        if ($request->isMethod('POST')) {
+            $form->submit($request->getPayload()->all()[$form->getName()]);
+
+            if (!$form->isValid()) {
+                throw new BadRequestHttpException($form->getErrors());
+            }
+
+            // Apply turn, advance and save
+            $turn->apply();
+            $gameService->advanceTurn($game, $player);
+            $game->setLastTurn($player, $turn->card, $turn->target, $turn->guess);
+            $entityManager->flush();
+
+            return $this->redirectToRoute('game', [
+                'player' => $player,
+                'code' => $game->getPlayer($player),
+            ]);
+        }
+
         return $this->render('game.html.twig', [
             'game' => $game,
-            'player' => $player
+            'player' => $player,
+            'form' => $form,
         ]);
     }
-
-//    #[Route('/game/{player<(1|2|3|4)>}/{code}/', name: 'game')]
-//    public function game(int $player, string $code, GameRepository $gameRepository): Response
-//    {
-//        $game = $gameRepository->findOneBy();
-//
-//        if (!$game) {
-//            throw $this->createNotFoundException();
-//        }
-//
-//        return $this->render();
-//    }
 }

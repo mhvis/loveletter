@@ -1,0 +1,13 @@
+<div class="form-check">
+    <input type="radio"
+           name="{{ name }}"
+           class="form-check-input"
+           id="{{ id }}"
+           value="{{ value }}"
+           {% if disabled %}disabled{% endif %}
+           required>
+    <label class="form-check-label"
+           for="{{ id }}">
+        Speler {{ value }}
+    </label>
+</div>

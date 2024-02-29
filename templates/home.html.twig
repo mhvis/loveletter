@@ -6,8 +6,21 @@
 
         <input type="hidden" name="token" value="{{ csrf_token('new') }}">
 
-        <button type="submit" name="group_size" value="2">2 players</button>
-        <button type="submit" name="group_size" value="3">3 players</button>
-        <button type="submit" name="group_size" value="4">4 players</button>
+        <button type="submit"
+                name="group_size"
+                class="btn btn-secondary"
+                value="2">
+            2 players
+        </button>
+        <button type="submit"
+                name="group_size"
+                class="btn btn-secondary"
+                value="3">
+            3 players
+        </button>
+        <button type="submit"
+                name="group_size"
+                class="btn btn-secondary"
+                value="4">4 players</button>
     </form>
 {% endblock %}

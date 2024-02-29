@@ -1,0 +1,12 @@
+<div class="form-check">
+    <input type="radio"
+           class="form-check-input"
+           name="{{ name }}"
+           id="{{ id }}{{ card }}"
+           value="{{ card }}"
+           required>
+    <label for="{{ id }}{{ card }}"
+           class="form-check-label">
+        {{ include('partials/cardname.html.twig') }} ({{ card }})
+    </label>
+</div>

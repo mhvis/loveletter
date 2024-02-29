@@ -20,4 +20,11 @@ final class GameServiceTest extends TestCase
         $this->assertEquals([1 => [], 2 => [], 3 => []], $game->getOpen());
         $this->assertEquals([], $game->getAside());
     }
+
+    public function testAdvanceTurn(): void
+    {
+        $gameService = new GameService();
+        $game = new Game(4);
+
+    }
 }

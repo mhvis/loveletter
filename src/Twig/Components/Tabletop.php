@@ -3,23 +3,42 @@
 namespace App\Twig\Components;
 
 use App\Entity\Game;
-use App\Service\GameState;
+use App\Service\Turn;
+use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\Form\FormInterface;
+use Symfony\Component\Form\FormView;
 use Symfony\UX\LiveComponent\Attribute\AsLiveComponent;
+use Symfony\UX\LiveComponent\Attribute\LiveProp;
+use Symfony\UX\LiveComponent\ComponentWithFormTrait;
 use Symfony\UX\LiveComponent\DefaultActionTrait;
+use Symfony\UX\TwigComponent\Attribute\AsTwigComponent;
 
 #[AsLiveComponent]
-class Tabletop
+class Tabletop extends AbstractController
 {
     use DefaultActionTrait;
+    use ComponentWithFormTrait;
 
+    #[LiveProp]
     public Game $game;
+    #[LiveProp]
     public int $player;
 
-    public function getGameState(): GameState
+//    #[LiveProp]
+//    public string $tokenName;
+//    #[LiveProp]
+//    public string $tokenValue;
+
+//    public FormView $form;
+
+    protected function instantiateForm(): FormInterface
     {
-        return new GameState(
-            $this->game->getGroupSize(),
-            $this->game->getState()
-        );
+        return $this->createFormBuilder(new Turn($this->game, $this->player))
+            ->add('card')
+            ->add('target')
+            ->add('guess')
+            ->getForm();
     }
+
+
 }

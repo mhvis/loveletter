@@ -7,8 +7,8 @@
     {#    </label> #}
     <form method="post" action="{{ path('game_join', {code: game.code}) }}">
         <input type="hidden" name="token" value="{{ csrf_token('join') }}">
-        <button type="submit">
-            Join this game
+        <button type="submit" class="btn btn-primary">
+            Speel mee
         </button>
     </form>
 
